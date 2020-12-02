@@ -72,17 +72,21 @@ class Broker():
         self.lP = label_pool
         self.name = name
 
-        self.topic_pool = self.atp[label] # where the broker read publications. and subscription from other broker*
+        self.topic_pool = self.atp[self.name] # where the broker read publications. and subscription from other broker*
         self.subscription_pool = {} # all subscription information of this broker
-        self.subscription_queue = []    # this is for subscription flooding
-        self.sq_lock = threading.lock() # protect the subscription queue
+        self.sp_lock = threading.Lock() # protect the subscription pool
+        self.subscription_queue = []    # this is for subscription flooding. (topic, name)
+        self.sq_lock = threading.Lock() # protect the subscription queue
+        self.sf_flag = False
+        self.pub_flag= False
 
         self.ATs = ALL_TOPICS  # a file have all possible topics. Only for simulation. 3D [level][name][number]
 
-    def subscribe(self, init_number, locality):
+    def subscribe_init(self, init_number, locality):
         # init the subscription_pool. THIS MAY UPDATE later
         # init_number: number of init topics
-        # locality: randomly choose locality topics from other brokers
+        # locality: randomly choose locality topics from other brokers. 0 - no others
+        # TODO: take wildcard into consideration
 
         topics0 = []
         max_length = len(self.ATs[0][self.name])
@@ -92,13 +96,41 @@ class Broker():
                 tmp_topic += "/" + self.ATs[j+1][self.name][random.randint(0, max_length-1)]
             topics0.append(tmp_topic)
 
+        # subscribe some other
+        other_cnt = 0
+        while other_cnt < locality:
+            target = random.randint(0, max_length)
+            if target != self.name:
+                # select topic from target broker
+                topics0.append(self.ATs[0][target][random.randint(0, max_length-1)] + "/" +
+                               self.ATs[1][target][random.randint(0, max_length-1)] + "/" +
+                               self.ATs[2][target][random.randint(0, max_length-1)])
+                other_cnt += 1
+
         for i in topics0:
             addToDict(self.subscription_pool, i, -1)
+            self.subscription_queue.append((i, self.name))
 
-        # subscribe some other
+        print ("Init subscription successfully!", self.subscription_pool)
 
+    def subscribe_flooding(self):
+        # TODO: should this be an extra list? this depends on the protocol used to transfer subscription info
+        while self.sf_flag:
+            if len(self.subscription_queue) == 0:
+                time.sleep(0.01)
+            else:
+                self.sq_lock.acquire()
+                tmp_sub = self.subscription_queue[0]    # (topic, name)
+                self.subscription_queue = self.subscription_queue[1:]
+                self.sq_lock.release()
 
-
+                for i in range(len(self.atp)):  # find a neighbor
+                    if self.bG[self.name][i] != 0 and i != tmp_sub[1]:
+                        self.lock.acquire()
+                        self.atp[i] = [{"topic": self.lP[0] + str(self.name) + "/" +  tmp_sub[0],
+                                        "message": tmp_sub[0] + "from the broker " + str(self.name)}] + self.atp[i]
+                        self.lock.release()
+                        print("Broker %d finished the SF of topic %s to %d !" % (self.name, tmp_sub[0], i))
 
 class Publisher():
     def publish(self):

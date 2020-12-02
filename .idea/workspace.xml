@@ -4,7 +4,6 @@
     <list default="true" id="b40e862e-dcd1-4869-b45f-b2e4a29812c2" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/containers.py" beforeDir="false" afterPath="$PROJECT_DIR$/containers.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mytests.py" beforeDir="false" afterPath="$PROJECT_DIR$/mytests.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -28,6 +27,7 @@
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/main.py" />
+    <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -64,7 +64,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="mytests" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration name="mytests" type="PythonConfigurationType" factoryName="Python">
       <module name="Simulation" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -86,11 +86,6 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <recent_temporary>
-      <list>
-        <item itemvalue="Python.mytests" />
-      </list>
-    </recent_temporary>
   </component>
   <component name="SvnConfiguration">
     <configuration />
@@ -104,7 +99,7 @@
       <updated>1604773363233</updated>
       <workItem from="1604773364475" duration="13464000" />
       <workItem from="1605046772827" duration="3073000" />
-      <workItem from="1606336622410" duration="31065000" />
+      <workItem from="1606336622410" duration="35736000" />
     </task>
     <servers />
   </component>
