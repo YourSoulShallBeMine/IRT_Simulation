@@ -157,5 +157,10 @@ class test_globalinclass():
         time.sleep(3)
         self.set()
 
-test = test_globalinclass()
-test.run()
+
+# test the empty loop
+
+test_emt = []
+for i in test_emt:
+    print("empty!")
+print("out empty")

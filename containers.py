@@ -81,9 +81,10 @@ class Broker():
         self.sf_flag = False
 
         self.pub_flag= False
-        self.pub_speed = 0.2    # every 0.2 seconds publish somethings
+        self.pub_speed = 0.3    # every 0.3 seconds publish somethings
         self.pub_sub = 3    # one time 3 publications max
         self.pub_cnt = 0    # number of total publication generated
+        self.process_speed = 0.1    # process every 0.1 second
 
         self.ATs = ALL_TOPICS  # a file have all possible topics. Only for simulation. 3D [level][name][number]
         self.time = time.time()
@@ -142,15 +143,16 @@ class Broker():
         # randomly publish something at random speed to the pool
         while self.pub_flag:
             # generate topics. Message: current time
-            targets = [[random.randint(0, len(self.ATs[0][self.name])) for i in range(LEVEL)]
+            targets = [[random.randint(0, len(self.ATs[0][self.name])-1) for i in range(LEVEL)]
                        for j in range(random.randint(1, self.pub_sub))] # [[2,4,1] * n]
 
             # transform to acceptable form
             tmp_list = []
             for i in targets:
-                tmp_list.append({self.ATs[0][self.name][i[0]] + "/" +
+                tmp_list.append({"topic": self.ATs[0][self.name][i[0]] + "/" +
                                 self.ATs[1][self.name][i[1]] + "/" +
-                                self.ATs[2][self.name][i[2]]: str(time.time() - self.time)
+                                self.ATs[2][self.name][i[2]],
+                                 "message": str(time.time() - self.time)
                                  })
             # send to the pool
             self.lock.acquire()
@@ -159,7 +161,6 @@ class Broker():
 
             self.pub_cnt += len(targets)
             time.sleep(self.pub_speed)
-
 
     def work_loop(self):
         # read publications from the pool and do broadcast
@@ -177,13 +178,32 @@ class Broker():
             header = tmp["topic"].split("/")[0]
             if header[0:len(self.lP[0])] == self.lP[0]:
                 source = int(header[self.lP[0]:])   # name of the source broker
-                # TODO: below hh
                 # add to subscripion queue
+                self.sq_lock.acquire()
+                self.subscription_queue.attend((tmp["topic"][len(header)+1:], source))
+                self.sq_lock.release()
                 # save to subscription pool
+                self.sp_lock.acquire()
+                addToDict(self.subscription_pool, tmp["topic"][len(header)+1:], source)
+                self.sp_lock.release()
             else:   # normal publication from clients
                 # match with subscription pool
-                # if neighbor broker, send it to its topic_pool
-                print("Send to neighbor !")
+                try:
+                    send_list = self.subscription_pool[tmp["topic"]]
+                except:
+                    send_list = []
+
+                for j in send_list:
+                    if j == -1: # itself
+                        print("Broker %d send out to its own clients with topic <%s> and message: [%s]" % (self.name, tmp["topic"], tmp["message"]))
+                    else:
+                        # if neighbor broker, send it to its topic_pool
+                        self.lock.acquire()
+                        self.atp[j].append(tmp)
+                        self.lock.release()
+                        print("Broker %d transfer a publication <%s> to its neighbor %d!" % (self.name, tmp["topic"], j))
+
+            time.sleep(self.process_speed)
 
     def stop(self):
         self.pub_flag = False
@@ -191,7 +211,7 @@ class Broker():
 
     def start_simu(self):
         # start multi-threads for simulation
-        self.subscribe_init()
+        self.subscribe_init(2, 0)
         self.pub_flag = True
         self.sf_flag = True
         th1 = threading.Thread(target=self.subscribe_flooding)
@@ -201,9 +221,5 @@ class Broker():
         th2.start()
         th3.start()
 
-
-class Publisher():
-    def publish(self):
-        pass
 
 

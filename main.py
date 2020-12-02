@@ -1,11 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import random
 import csv
 import math
 import copy
-import threading
-import time
+
 from containers import *
 
 
@@ -46,86 +44,21 @@ def topic_pool_read(filename):
     return res
 
 
-def some_rand(x, a, b):
-    # generate x different ints in [a, b)
-    if b - a < x:
-        print("Invalid range and number! Cannot generate %d numbers from %d to %d !" %(x, a, b))
-    res = []
-    while len(res) != x:
-        t = random.randint(a, b-1)
-        if t not in res:
-            res.append(t)
-    res.sort()
-    #print(res)
-    return res
-
-
-def pack_publication(topic, message):
-    dict = {'topic': topic, 'message': message}
-    return dict
-
-
-def publish(pool, speed, period, simul, broker_topics):
-    start = 0
-    start_time = time.time()
-    # simul: max number of publication at a moment
-    while start < period:
-        # select topics from pool
-        number_of_topic = random.randint(1, simul)
-        topic_index = some_rand(number_of_topic, 0, len(pool))
-        lock1.acquire()
-        for ti in topic_index:
-            broker_topics.append(pack_publication(pool[ti], str(time.time() - start_time)))
-        lock1.release()
-        print(" === publish %d topics ! ====" % number_of_topic)
-
-        time.sleep(speed)
-        start += speed
-
-
-def broadcast(name, pool, speed, broker_topics, neighbor_topics, neighbors):
-    print("The broker " + name + " has these subscriptions: ", pool)
-    # neighbor_topics: a dict where keys are topics and values are brokers
-    # neighbors should be indice list of neighbor brokers
-    while True:
-        if len(broker_topics) == 0:
-            time.sleep(speed * 3)
-        else:
-            lock1.acquire()
-            pub = broker_topics[0]
-            broker_topics.remove(broker_topics[0])
-            lock1.release()
-
-            if pub['topic'] in pool:
-                print("Source: " + name + "  Topic: " + pub['topic'] + "  Message: " + pub['message'])
-
-            if pub['topic'] in neighbor_topics.keys():
-                for i in neighbor_topics[pub['topic']]:
-                    lock1.acquire()
-                    all_brokers[i].append(pub)
-                    lock1.release()
-
-            time.sleep(speed)
-
-
 if __name__ == '__main__':
-    num_of_b = 2 # number of brokers
-    Topic_generate(num_of_b, 3, 1)
-    Topic_generate(num_of_b, 3, 2)
-    Topic_generate(num_of_b, 3, 3)
-    whole_pool = topic_pool_read("topic_pool.csv")
-    print("All topics are: ", whole_pool)
+    num_of_brokers = 1
+    num_of_candidate = 3
+    # generate topics and all_Topics
+    all_Topics = []
+    for i in range(3):
+        Topic_generate(num_of_brokers, num_of_candidate, i+1)
+        all_Topics.append(topic_pool_read("topic_pool_" + str(i+1) + ".csv"))
 
-    all_brokers = [[] for i in range(num_of_b)]
-    n_t = {}
-    for i in whole_pool[1][0:2]:
-        n_t[i] = [1]
+    # simulation start
+    all_topic_pool = [[] for i in range(num_of_brokers)]
+    atp_lock = threading.Lock()
+    broker_graph = [[0]]
+    label_pool = ["XXthisXisXfromXaXbrokerXX"]
+    Broker0 = Broker(all_topic_pool, atp_lock, broker_graph, label_pool, 0, all_Topics)
 
-    t1 = threading.Thread(target=publish, args=(whole_pool[0] + whole_pool[1], 1, 100, 3, all_brokers[0],))
-    t2 = threading.Thread(target=broadcast, args=("BROKER1", whole_pool[0][0:3], 0.2, all_brokers[0], n_t, [1], ))
-    t3 = threading.Thread(target=broadcast, args=("BROKER2", whole_pool[1][0:3], 0.2, all_brokers[1], {}, [0],))
+    Broker0.start_simu()
 
-
-    t1.start()
-    t2.start()
-    t3.start()
