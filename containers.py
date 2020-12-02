@@ -163,7 +163,27 @@ class Broker():
 
     def work_loop(self):
         # read publications from the pool and do broadcast
-        pass
+        iteration = 10000
+        for i in range(iteration):
+            while len(self.atp[self.name]) == 0:
+                continue
+            # abstract a topic
+            self.lock.acquire()
+            tmp = self.atp[self.name][0]
+            self.atp[self.name] = self.atp[self.name][1:]
+            self.lock.release()
+
+            # judge its header
+            header = tmp["topic"].split("/")[0]
+            if header[0:len(self.lP[0])] == self.lP[0]:
+                source = int(header[self.lP[0]:])   # name of the source broker
+                # TODO: below hh
+                # add to subscripion queue
+                # save to subscription pool
+            else:   # normal publication from clients
+                # match with subscription pool
+                # if neighbor broker, send it to its topic_pool
+                print("Send to neighbor !")
 
     def stop(self):
         self.pub_flag = False

@@ -96,22 +96,66 @@ test = [[1,2,3,4,5], [4,5,5]]
 #     th.start()
 
 
-# test th in th
+# # test th in th
+#
+# class test():
+#     def __init__(self, n):
+#         self.num = n
+#
+#     def output(self):
+#         print("This is <<%d>>" % self.num)
+#
+#     def run(self):
+#         for i in range(self.num):
+#             th = threading.Thread(target= self.output)
+#             th.start()
+#
+#
+# for i in range(3):
+#     t1 = test(i + 1)
+#     th = threading.Thread(target=t1.run)
+#     th.start()
 
-class test():
-    def __init__(self, n):
-        self.num = n
+# # test read don't need lock
+#
+# L = [1,2,3,4,5]
+# flag = True
+#
+# def add(n):
+#     L.append(n)
+#
+# def set():
+#     global flag
+#     flag = False
+#
+# def read():
+#     while flag:
+#         continue
+#     print(len(L))
+#
+# th = threading.Thread(target=read)
+# th.start()
+# t = 0
+# time.sleep(3)
+# set()
 
-    def output(self):
-        print("This is <<%d>>" % self.num)
+class test_globalinclass():
+    def __init__(self):
+        self.test = True
+
+    def set(self):
+        self.test = False
+
+    def Loop(self):
+        while self.test:
+            continue
+        print ("The variable is changed!")
 
     def run(self):
-        for i in range(self.num):
-            th = threading.Thread(target= self.output)
-            th.start()
+        th = threading.Thread(target=self.Loop)
+        th.start()
+        time.sleep(3)
+        self.set()
 
-
-for i in range(3):
-    t1 = test(i + 1)
-    th = threading.Thread(target=t1.run)
-    th.start()
+test = test_globalinclass()
+test.run()
