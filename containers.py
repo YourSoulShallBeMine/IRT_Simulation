@@ -111,7 +111,7 @@ class Broker():
             addToDict(self.subscription_pool, i, -1)
             self.subscription_queue.append((i, self.name))
 
-        print ("Init subscription successfully!", self.subscription_pool)
+        print("Broker " + str(self.name) + " init subscription successfully!", self.subscription_pool)
 
     def subscribe_flooding(self):
         # TODO: should this be an extra list? this depends on the protocol used to transfer subscription info
@@ -131,6 +131,31 @@ class Broker():
                                         "message": tmp_sub[0] + "from the broker " + str(self.name)}] + self.atp[i]
                         self.lock.release()
                         print("Broker %d finished the SF of topic %s to %d !" % (self.name, tmp_sub[0], i))
+
+    def publish(self):
+        # randomly publish something at random speed to the pool
+        pass
+
+    def work_loop(self):
+        # read publications from the pool and do broadcast
+        pass
+
+    def stop(self):
+        self.pub_flag = False
+        self.sf_flag = True
+    
+    def start_simu(self):
+        # start multi-threads for simulation
+        self.subscribe_init()
+        self.pub_flag = True
+        self.sf_flag = True
+        th1 = threading.Thread(target=self.subscribe_flooding)
+        th2 = threading.Thread(target=self.publish)
+        th3 = threading.Thread(target=self.work_loop)
+        th1.start()
+        th2.start()
+        th3.start()
+
 
 class Publisher():
     def publish(self):
