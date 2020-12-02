@@ -4,6 +4,7 @@ import time
 import threading
 
 TYPE = {0: "empty", 1: "Broker", 2:"Subscriber", 3:"Publisher"}
+LEVEL = 3
 
 
 def some_rand(x, a, b):
@@ -78,9 +79,14 @@ class Broker():
         self.subscription_queue = []    # this is for subscription flooding. (topic, name)
         self.sq_lock = threading.Lock() # protect the subscription queue
         self.sf_flag = False
+
         self.pub_flag= False
+        self.pub_speed = 0.2    # every 0.2 seconds publish somethings
+        self.pub_sub = 3    # one time 3 publications max
+        self.pub_cnt = 0    # number of total publication generated
 
         self.ATs = ALL_TOPICS  # a file have all possible topics. Only for simulation. 3D [level][name][number]
+        self.time = time.time()
 
     def subscribe_init(self, init_number, locality):
         # init the subscription_pool. THIS MAY UPDATE later
@@ -134,7 +140,26 @@ class Broker():
 
     def publish(self):
         # randomly publish something at random speed to the pool
-        pass
+        while self.pub_flag:
+            # generate topics. Message: current time
+            targets = [[random.randint(0, len(self.ATs[0][self.name])) for i in range(LEVEL)]
+                       for j in range(random.randint(1, self.pub_sub))] # [[2,4,1] * n]
+
+            # transform to acceptable form
+            tmp_list = []
+            for i in targets:
+                tmp_list.append({self.ATs[0][self.name][i[0]] + "/" +
+                                self.ATs[1][self.name][i[1]] + "/" +
+                                self.ATs[2][self.name][i[2]]: str(time.time() - self.time)
+                                 })
+            # send to the pool
+            self.lock.acquire()
+            self.atp[self.name] += tmp_list
+            self.lock.release()
+
+            self.pub_cnt += len(targets)
+            time.sleep(self.pub_speed)
+
 
     def work_loop(self):
         # read publications from the pool and do broadcast
@@ -143,7 +168,7 @@ class Broker():
     def stop(self):
         self.pub_flag = False
         self.sf_flag = True
-    
+
     def start_simu(self):
         # start multi-threads for simulation
         self.subscribe_init()
