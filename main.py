@@ -12,19 +12,19 @@ from containers import *
 simu_topic_size = 4  # number of letters that form a topic
 lock1 = threading.Lock()
 
-def Topic_generate(r, c):
-    # generate r*c topic and store them into a csv file
-    f = open("topic_pool.csv", 'w', encoding='utf-8', newline="")  # newline is used to avoid empty lines between data
+def Topic_generate(r, c, level):
+    # generate r*c topic and store them into a csv file. level is the level of this topic: 1/2/3/...
+    f = open("topic_pool_" + str(level) + ".csv", 'w', encoding='utf-8', newline="")  # newline is used to avoid empty lines between data
     f_writer = csv.writer(f)
     # ASC-II for A-Z: 65-90; a-z: 97-122
     topic_pool = []
     i = 0
     while i < r*c:
         tmp_topic = ""
-        for j in range(simu_topic_size):
+        for j in range(simu_topic_size - level + 1):
             tmp_topic += chr(random.randint(65,90))
         if tmp_topic not in topic_pool:
-            topic_pool.append(tmp_topic)
+            topic_pool.append(str(int(i/c)) + tmp_topic + str(level))
             i += 1
 
     # write the topics to the csv file topic_pool.csv
@@ -110,7 +110,9 @@ def broadcast(name, pool, speed, broker_topics, neighbor_topics, neighbors):
 
 if __name__ == '__main__':
     num_of_b = 2 # number of brokers
-    Topic_generate(num_of_b, 3)
+    Topic_generate(num_of_b, 3, 1)
+    Topic_generate(num_of_b, 3, 2)
+    Topic_generate(num_of_b, 3, 3)
     whole_pool = topic_pool_read("topic_pool.csv")
     print("All topics are: ", whole_pool)
 

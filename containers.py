@@ -25,7 +25,9 @@ def addToDict(dict, topic, user):
         temp_list = dict[topic]
     except:
         temp_list = []
-    dict[topic].append(user)
+    if user not in temp_list:
+        temp_list.append(user)
+    dict[topic] = temp_list
     return dict
 
 
@@ -70,21 +72,17 @@ class Broker():
         self.topic_pool = self.atp[label]
         self.subscription_pool = {}
 
-        self.ATs = ALL_TOPICS  # a file have all possible topics. Only for simulation.
+        self.ATs = ALL_TOPICS  # a file have all possible topics. Only for simulation. 3D [level][label][number]
 
     def subscribe(self, init_number, locality):
         # init the subscription_pool. THIS MAY UPDATE later
         # init_number: randomly choose in topics from the ATs
         # locality: randomly choose locality topics from other brokers
         topics1 = some_rand(init_number, 0, len(self.ATs[0]))
-        for i in init_number:
-            try:
-                temp_list = self.subscription_pool[self.topic_pool[i]]
-            except:
-                temp_list = []
-            if -1 not in temp_list:  # -1 stands for this broker
-                temp_list.append(-1)
-            self.subscription_pool[self.topic_pool[i]] = temp_list
+        for i in topics1:
+            addToDict(self.subscription_pool, self.topic_pool[i], -1)
+
+        # subscribe some other
 
 
 

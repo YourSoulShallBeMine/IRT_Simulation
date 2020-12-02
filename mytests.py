@@ -30,19 +30,22 @@ def output(id, counter):
 test = [[1,2,3,4,5], [4,5,5]]
 
 
-# class addtest():
-#     def __init__(self, list):
-#         self.list = list
-#
-#     def modify(self, x):
-#         self.list.append(x)
-#         print("This is the list in the class: ", self.list)
-#
-#
-# trial = addtest(test[0])
-# print(test)
-# trial.modify(99)
-# print("This is outside:", test)
+class addtest():
+    def __init__(self, list):
+        self.list = list
+
+    def modify(self, x):
+        self.list.append(x)
+        print("This is the list in the class: ", self.list)
+
+    def runit(self):
+        self.modify(99)
+
+
+trial = addtest(test[0])
+print(test)
+trial.runit()
+print("This is outside:", test)
 
 #
 # def change1(array):
@@ -54,12 +57,12 @@ test = [[1,2,3,4,5], [4,5,5]]
 #
 # change1(test[0])
 
-dict = {"test1": 1, "test2": 2}
-
-def addDict(dict, topic, user):
-    dict[topic] = [dict[topic]]
-    dict[topic].append(user)
-    return dict
-
-new_dict = addDict(dict, "test1", 3)
-print(new_dict)
+# dict = {"test1": 1, "test2": 2}
+#
+# def addDict(dict, topic, user):
+#     dict[topic] = [dict[topic]]
+#     dict[topic].append(user)
+#     return dict
+#
+# new_dict = addDict(dict, "test1", 3)
+# print(new_dict)
