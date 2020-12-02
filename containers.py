@@ -99,14 +99,15 @@ class Broker():
         max_length = len(self.ATs[0][self.name])
         for i in range(init_number):
             tmp_topic = self.ATs[0][self.name][init_number%max_length]
-            for j in range(len(self.ATs[0]) - 1): # select branches
+            for j in range(LEVEL - 1): # select branches
                 tmp_topic += "/" + self.ATs[j+1][self.name][random.randint(0, max_length-1)]
             topics0.append(tmp_topic)
 
         # subscribe some other
         other_cnt = 0
+        print(max_length)
         while other_cnt < locality:
-            target = random.randint(0, max_length)
+            target = random.randint(0, max_length-1)
             if target != self.name:
                 # select topic from target broker
                 topics0.append(self.ATs[0][target][random.randint(0, max_length-1)] + "/" +
@@ -177,10 +178,10 @@ class Broker():
             # judge its header
             header = tmp["topic"].split("/")[0]
             if header[0:len(self.lP[0])] == self.lP[0]:
-                source = int(header[self.lP[0]:])   # name of the source broker
+                source = int(header[len(self.lP[0]):])   # name of the source broker
                 # add to subscripion queue
                 self.sq_lock.acquire()
-                self.subscription_queue.attend((tmp["topic"][len(header)+1:], source))
+                self.subscription_queue.append((tmp["topic"][len(header)+1:], source))
                 self.sq_lock.release()
                 # save to subscription pool
                 self.sp_lock.acquire()
@@ -209,9 +210,9 @@ class Broker():
         self.pub_flag = False
         self.sf_flag = True
 
-    def start_simu(self):
+    def start_simu(self, init_number, locality):
         # start multi-threads for simulation
-        self.subscribe_init(2, 0)
+        self.subscribe_init(init_number, locality)
         self.pub_flag = True
         self.sf_flag = True
         th1 = threading.Thread(target=self.subscribe_flooding)

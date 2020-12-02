@@ -45,7 +45,7 @@ def topic_pool_read(filename):
 
 
 if __name__ == '__main__':
-    num_of_brokers = 1
+    num_of_brokers = 2
     num_of_candidate = 3
     # generate topics and all_Topics
     all_Topics = []
@@ -56,9 +56,11 @@ if __name__ == '__main__':
     # simulation start
     all_topic_pool = [[] for i in range(num_of_brokers)]
     atp_lock = threading.Lock()
-    broker_graph = [[0]]
+    broker_graph = [[0, 1], [-1, 0]]
     label_pool = ["XXthisXisXfromXaXbrokerXX"]
     Broker0 = Broker(all_topic_pool, atp_lock, broker_graph, label_pool, 0, all_Topics)
+    Broker1 = Broker(all_topic_pool, atp_lock, broker_graph, label_pool, 1, all_Topics)
 
-    Broker0.start_simu()
+    Broker0.start_simu(2, 2)
+    Broker1.start_simu(2, 2)
 
