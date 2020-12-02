@@ -81,10 +81,10 @@ class Broker():
         self.sf_flag = False
 
         self.pub_flag= False
-        self.pub_speed = 0.3    # every 0.3 seconds publish somethings
-        self.pub_sub = 3    # one time 3 publications max
+        self.pub_speed = 1    # every x seconds publish somethings
+        self.pub_sub = 2    # one time x publications max
         self.pub_cnt = 0    # number of total publication generated
-        self.process_speed = 0.1    # process every 0.1 second
+        self.process_speed = 0.1    # process every x second
 
         self.ATs = ALL_TOPICS  # a file have all possible topics. Only for simulation. 3D [level][name][number]
         self.time = time.time()
@@ -105,9 +105,8 @@ class Broker():
 
         # subscribe some other
         other_cnt = 0
-        print(max_length)
         while other_cnt < locality:
-            target = random.randint(0, max_length-1)
+            target = random.randint(0, len(self.atp)-1)
             if target != self.name:
                 # select topic from target broker
                 topics0.append(self.ATs[0][target][random.randint(0, max_length-1)] + "/" +
@@ -177,7 +176,7 @@ class Broker():
 
             # judge its header
             header = tmp["topic"].split("/")[0]
-            if header[0:len(self.lP[0])] == self.lP[0]:
+            if header[0:len(self.lP[0])] == self.lP[0]: # subscription info from another broker
                 source = int(header[len(self.lP[0]):])   # name of the source broker
                 # add to subscripion queue
                 self.sq_lock.acquire()
@@ -187,7 +186,13 @@ class Broker():
                 self.sp_lock.acquire()
                 addToDict(self.subscription_pool, tmp["topic"][len(header)+1:], source)
                 self.sp_lock.release()
+            # elif header[0:len(self.lP[1])] == self.lP[1]:   # publication from another broker
             else:   # normal publication from clients
+                # see whether it is from another broker
+                source = -2
+                if header[0:len(self.lP[1])] == self.lP[1]:
+                    source = int(header[len(self.lP[1]):])
+                    tmp["topic"] = tmp["topic"][len(header)+1:]
                 # match with subscription pool
                 try:
                     send_list = self.subscription_pool[tmp["topic"]]
@@ -197,8 +202,9 @@ class Broker():
                 for j in send_list:
                     if j == -1: # itself
                         print("Broker %d send out to its own clients with topic <%s> and message: [%s]" % (self.name, tmp["topic"], tmp["message"]))
-                    else:
+                    elif j != source:
                         # if neighbor broker, send it to its topic_pool
+                        tmp["topic"] = self.lP[1] + str(self.name) + "/" + tmp["topic"]
                         self.lock.acquire()
                         self.atp[j].append(tmp)
                         self.lock.release()
