@@ -30,22 +30,21 @@ def output(id, counter):
 test = [[1,2,3,4,5], [4,5,5]]
 
 
-class addtest():
-    def __init__(self, list):
-        self.list = list
-
-    def modify(self, x):
-        self.list.append(x)
-        print("This is the list in the class: ", self.list)
-
-    def runit(self):
-        self.modify(99)
-
-
-trial = addtest(test[0])
-print(test)
-trial.runit()
-print("This is outside:", test)
+# class addtest():
+#     def __init__(self, list):
+#         self.list = list
+#
+#     def modify(self, x):
+#         self.list.append(x)
+#         print("This is the list in the class: ", self.list)
+#
+#     def runit(self):
+#         self.modify(99)
+#
+# trial = addtest(test[0])
+# print(test)
+# trial.runit()
+# print("This is outside:", test)
 
 #
 # def change1(array):
@@ -66,3 +65,53 @@ print("This is outside:", test)
 #
 # new_dict = addDict(dict, "test1", 3)
 # print(new_dict)
+
+
+# lock = threading.Lock()
+# l = []
+#
+# class test1():
+#     def __init__(self, n, lock):
+#         self.num = n
+#         self.lock = lock
+#
+#     def add(self):
+#         self.lock.acquire()
+#         l.append(self.num)
+#         print(l)
+#         self.lock.release()
+#
+#     def add_nl(self):
+#         l.append(self.num)
+#         print(l)
+#
+#
+# def test2(n):
+#     l.append(n)
+#     print(l)
+#
+# for i in range(10):
+#     #t = test1(i, lock)
+#     th = threading.Thread(target=test2, args=(i,))
+#     th.start()
+
+
+# test th in th
+
+class test():
+    def __init__(self, n):
+        self.num = n
+
+    def output(self):
+        print("This is <<%d>>" % self.num)
+
+    def run(self):
+        for i in range(self.num):
+            th = threading.Thread(target= self.output)
+            th.start()
+
+
+for i in range(3):
+    t1 = test(i + 1)
+    th = threading.Thread(target=t1.run)
+    th.start()

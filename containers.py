@@ -21,6 +21,7 @@ def some_rand(x, a, b):
 
 
 def addToDict(dict, topic, user):
+    # TODO: detect whether topics are belongs to each other
     try:
         temp_list = dict[topic]
     except:
@@ -59,28 +60,40 @@ class Device: # currently seems no need to make this father class
 
 
 class Broker():
-    def __init__(self, all_topic_pool, atp_lock, broker_graph, label_pool, label, ALL_TOPICS):
+    def __init__(self, all_topic_pool, atp_lock, broker_graph, label_pool, name, ALL_TOPICS):
         # atp: a 2D list whose row is equal to broker number. Each broker has a row to show its received publications
         # atp_lock: protect the atp
         # broker_graph: matrix shows the relationship among brokers.  G[u][v] > 0: u is closer to the root
         # label_pool: labels to show whether a topic is from a broker or a publisher
-        # label: number of this broker
+        # name: number of this broker
         self.atp = all_topic_pool
         self.lock = atp_lock
         self.bG = broker_graph
         self.lP = label_pool
-        self.topic_pool = self.atp[label]
-        self.subscription_pool = {}
+        self.name = name
 
-        self.ATs = ALL_TOPICS  # a file have all possible topics. Only for simulation. 3D [level][label][number]
+        self.topic_pool = self.atp[label] # where the broker read publications. and subscription from other broker*
+        self.subscription_pool = {} # all subscription information of this broker
+        self.subscription_queue = []    # this is for subscription flooding
+        self.sq_lock = threading.lock() # protect the subscription queue
+
+        self.ATs = ALL_TOPICS  # a file have all possible topics. Only for simulation. 3D [level][name][number]
 
     def subscribe(self, init_number, locality):
         # init the subscription_pool. THIS MAY UPDATE later
-        # init_number: randomly choose in topics from the ATs
+        # init_number: number of init topics
         # locality: randomly choose locality topics from other brokers
-        topics1 = some_rand(init_number, 0, len(self.ATs[0]))
-        for i in topics1:
-            addToDict(self.subscription_pool, self.topic_pool[i], -1)
+
+        topics0 = []
+        max_length = len(self.ATs[0][self.name])
+        for i in range(init_number):
+            tmp_topic = self.ATs[0][self.name][init_number%max_length]
+            for j in range(len(self.ATs[0]) - 1): # select branches
+                tmp_topic += "/" + self.ATs[j+1][self.name][random.randint(0, max_length-1)]
+            topics0.append(tmp_topic)
+
+        for i in topics0:
+            addToDict(self.subscription_pool, i, -1)
 
         # subscribe some other
 
