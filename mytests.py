@@ -158,9 +158,21 @@ class test_globalinclass():
         self.set()
 
 
-# test the empty loop
+def empty_loop():
+    # test the empty loop
+    test_emt = []
+    for i in test_emt:
+        print("empty!")
+    print("out empty")
 
-test_emt = []
-for i in test_emt:
-    print("empty!")
-print("out empty")
+
+def time_of_process():
+    s0 = 0
+    t0 = time.time()
+    for i in range(1000):
+        for j in range(10000):
+            s0 += 1
+    t1 = time.time() - t0
+    print("10000 loops: ", t1)
+    # 1e8: 4.475s
+    # 1e7: 0.442s

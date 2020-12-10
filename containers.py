@@ -87,7 +87,8 @@ class Broker():
         self.process_speed = 0.1    # process every x second
 
         self.ATs = ALL_TOPICS  # a file have all possible topics. Only for simulation. 3D [level][name][number]
-        self.time = time.time()
+        self.time = time.time() # just for generating message
+
 
     def subscribe_init(self, init_number, locality):
         # init the subscription_pool. THIS MAY UPDATE later
@@ -119,6 +120,29 @@ class Broker():
             self.subscription_queue.append((i, self.name))
 
         print("Broker " + str(self.name) + " init subscription successfully!", self.subscription_pool)
+
+    def subscribe_topic(self, level1, level2, level3):
+        # 0~n stands for candidate index; -1: single level#; -2: multi level+
+        res = ""
+        input = [level1, level2, level3]
+        if input.count(-1) + input.count(-2) > 1:
+            print("Sorry, only support one wildcard each time right now.")
+            return
+        for i in range(LEVEL):
+            if input[i] == -1:
+                tmp = "#"
+            elif input[i] == -2:
+                tmp = "+"
+                res += tmp
+                break
+            else:
+                tmp = self.ATs[i][self.name][input[i]]
+            res += tmp;
+            if i != LEVEL-1:
+                res += "/"
+
+        addToDict(self.subscription_pool, res, -1)
+        self.subscription_queue.append((res, self.name))
 
     def subscribe_flooding(self):
         # TODO: should this be an extra list? this depends on the protocol used to transfer subscription info
