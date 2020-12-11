@@ -128,6 +128,29 @@ class Broker():
         self.time = time.time() # just for generating message
 
 
+    def compress_adddict(self, topic, user):
+        # made same subscription together
+        current_keys = self.subscription_pool.keys()
+        substopics = [] # possible topics that belongs to topic
+        for i in current_keys:
+            tmp = match_topics(topic, i)
+            if tmp == 0:
+                continue
+            elif tmp <= 2: # topic < current i
+                if user not in self.subscription_pool[i]:
+                    self.subscription_pool[i].append(user)
+                return
+            elif tmp == 3:
+                substopics.append(i)
+
+        addToDict(self.subscription_pool, topic, user)
+        for i in substopics:
+            if user in self.subscription_pool[i]:
+                self.subscription_pool[i].remove(user)
+            if self.subscription_pool[i] == []:
+                self.subscription_pool.pop(i)
+
+
     def subscribe_init(self, init_number, locality):
         # init the subscription_pool. THIS MAY UPDATE later
         # init_number: number of init topics
@@ -160,7 +183,7 @@ class Broker():
         print("Broker " + str(self.name) + " init subscription successfully!", self.subscription_pool)
 
     def subscribe_topic(self, level1, level2, level3):
-        # 0~n stands for candidate index; -1: single level#; -2: multi level+
+        # 0~n stands for candidate index; -1: single level+; -2: multi level#
         res = ""
         input = [level1, level2, level3]
         if input.count(-1) + input.count(-2) > 1:
@@ -168,9 +191,9 @@ class Broker():
             return
         for i in range(LEVEL):
             if input[i] == -1:
-                tmp = "#"
-            elif input[i] == -2:
                 tmp = "+"
+            elif input[i] == -2:
+                tmp = "#"
                 res += tmp
                 break
             else:
@@ -179,7 +202,8 @@ class Broker():
             if i != LEVEL-1:
                 res += "/"
 
-        addToDict(self.subscription_pool, res, -1)
+        #addToDict(self.subscription_pool, res, -1)
+        self.compress_adddict(res, -1)
         self.subscription_queue.append((res, self.name))
 
     def subscribe_flooding(self):
@@ -287,12 +311,19 @@ class Broker():
         self.subscribe_init(init_number, locality)
         self.pub_flag = True
         self.sf_flag = True
+
         th1 = threading.Thread(target=self.subscribe_flooding)
         th2 = threading.Thread(target=self.publish)
         th3 = threading.Thread(target=self.work_loop)
         th1.start()
         th2.start()
         th3.start()
+
+        if self.name == 0:
+            time.sleep(2)
+            print(self.subscription_pool)
+            self.subscribe_topic(-2, 0, 0)
+            print(self.subscription_pool)
 
 
 
