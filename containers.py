@@ -33,6 +33,43 @@ def addToDict(dict, topic, user):
     return dict
 
 
+def match_topics(pub, sub):
+    # to see whether pub has a matched sub, and need to return which one is larger
+    # usually pub will have no wildcard. But this function will also be used to match two sub topics.
+    # 0 - not equal; 1- pub < sub; 2 - pub == sub; 3 - pub > sub
+    if pub == sub:
+        return 2
+    p = pub.split("/")
+    s = pub.split("/")
+    length = min(len(p), len(s))
+    res = 2
+    for i in range(length):
+        if p[i] == "#":
+            if s[i] == "#":
+                return 2
+            else:
+                return 3
+        elif p[i] == "+":
+            if s[i] == "#":
+                return 1
+            elif s[i] != "+":
+                if res == 2:
+                    res = 3
+            continue
+        else:
+            if s[i] == "#":
+                return 3
+            elif s[i] == "+":
+                if res == 2:
+                    res = 1
+                continue
+            elif s[i] == p[i]:
+                continue
+            else:
+                return 0
+
+
+
 class Device: # currently seems no need to make this father class
     def __init__(self, name, ip, type):
         self.name = name
