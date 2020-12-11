@@ -40,7 +40,7 @@ def match_topics(pub, sub):
     if pub == sub:
         return 2
     p = pub.split("/")
-    s = pub.split("/")
+    s = sub.split("/")
     length = min(len(p), len(s))
     res = 2
     for i in range(length):
@@ -67,6 +67,7 @@ def match_topics(pub, sub):
                 continue
             else:
                 return 0
+    return res
 
 
 
@@ -255,10 +256,14 @@ class Broker():
                     source = int(header[len(self.lP[1]):])
                     tmp["topic"] = tmp["topic"][len(header)+1:]
                 # match with subscription pool
-                try:
-                    send_list = self.subscription_pool[tmp["topic"]]
-                except:
-                    send_list = []
+                # try:
+                #     send_list = self.subscription_pool[tmp["topic"]]
+                # except:
+                #     send_list = []
+                send_list = []
+                for j in self.subscription_pool.keys():
+                    if match_topics(tmp["topic"], j) != 0:
+                        send_list += self.subscription_pool[j]
 
                 for j in send_list:
                     if j == -1: # itself

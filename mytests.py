@@ -213,6 +213,6 @@ def match_topics(pub, sub):
                 return 0
     return res
 
-pub = "t1/t2/t3"
-sub = "#"
+pub = "0DUDN1/0AGT2/0LI3"
+sub = "0XKPH1/0AGT2/0LX3"
 print(match_topics(pub,sub))

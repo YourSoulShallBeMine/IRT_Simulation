@@ -61,7 +61,7 @@ if __name__ == '__main__':
     broker_graph[1][0] = broker_graph[2][1] =-1
     label_pool = ["XXthisXSubXisXfromXaXbrokerXX", "XXthisXPubXisXfromXanotherXbrokerXX"]
 
-    for i in range(1):
+    for i in range(3):
         Broker_i = Broker(all_topic_pool, atp_lock, broker_graph, label_pool, i, all_Topics)
         Thi = threading.Thread(target=Broker_i.start_simu, args=(2, 1, ))
         Thi.start()
