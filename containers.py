@@ -22,7 +22,6 @@ def some_rand(x, a, b):
 
 
 def addToDict(dict, topic, user):
-    # TODO: detect whether topics are belongs to each other
     try:
         temp_list = dict[topic]
     except:
@@ -127,6 +126,13 @@ class Broker():
         self.ATs = ALL_TOPICS  # a file have all possible topics. Only for simulation. 3D [level][name][number]
         self.time = time.time() # just for generating message
 
+        # evaluation:
+        self.time_sys = 0  # time from the start of the loop
+        self.num_innertrans = 0  # number of publication among brokers
+        self.num_innersubs = 0  # number of inner subscription info sharing
+
+
+
 
     def compress_adddict(self, topic, user):
         # made same subscription together
@@ -149,7 +155,6 @@ class Broker():
                 self.subscription_pool[i].remove(user)
             if self.subscription_pool[i] == []:
                 self.subscription_pool.pop(i)
-
 
     def subscribe_init(self, init_number, locality):
         # init the subscription_pool. THIS MAY UPDATE later
@@ -279,11 +284,7 @@ class Broker():
                 if header[0:len(self.lP[1])] == self.lP[1]:
                     source = int(header[len(self.lP[1]):])
                     tmp["topic"] = tmp["topic"][len(header)+1:]
-                # match with subscription pool
-                # try:
-                #     send_list = self.subscription_pool[tmp["topic"]]
-                # except:
-                #     send_list = []
+
                 send_list = []
                 for j in self.subscription_pool.keys():
                     if match_topics(tmp["topic"], j) != 0:
@@ -319,11 +320,11 @@ class Broker():
         th2.start()
         th3.start()
 
-        if self.name == 0:
-            time.sleep(2)
-            print(self.subscription_pool)
-            self.subscribe_topic(-2, 0, 0)
-            print(self.subscription_pool)
+        # if self.name == 0:
+        #     time.sleep(2)
+        #     print(self.subscription_pool)
+        #     self.subscribe_topic(-2, 0, 0)
+        #     print(self.subscription_pool)
 
 
 
