@@ -2,6 +2,7 @@ import numpy as np
 import random
 import time
 import threading
+import copy
 
 TYPE = {0: "empty", 1: "Broker", 2:"Subscriber", 3:"Publisher"}
 LEVEL = 3
@@ -122,6 +123,8 @@ class Broker():
         self.pub_sub = 2    # one time x publications max
         self.pub_cnt = 0    # number of total publication generated
         self.process_speed = 0.1    # process every x second
+        self.sub_flag = False
+        self.sub_speed = 0.31  # every x seconds receive a subscription
 
         self.ATs = ALL_TOPICS  # a file have all possible topics. Only for simulation. 3D [level][name][number]
         self.time = time.time() # just for generating message
@@ -130,6 +133,7 @@ class Broker():
         self.time_sys = 0  # time from the start of the loop
         self.num_innertrans = 0  # number of publication among brokers
         self.num_innersubs = 0  # number of inner subscription info sharing
+        self.num_subinfo = []  # number of topics stored in the subinfo
 
 
 
@@ -187,10 +191,9 @@ class Broker():
 
         print("Broker " + str(self.name) + " init subscription successfully!", self.subscription_pool)
 
-    def subscribe_topic(self, level1, level2, level3):
+    def subscribe_topic(self, input, name, method):
         # 0~n stands for candidate index; -1: single level+; -2: multi level#
         res = ""
-        input = [level1, level2, level3]
         if input.count(-1) + input.count(-2) > 1:
             print("Sorry, only support one wildcard each time right now.")
             return
@@ -202,14 +205,22 @@ class Broker():
                 res += tmp
                 break
             else:
-                tmp = self.ATs[i][self.name][input[i]]
+                tmp = self.ATs[i][name][input[i]]
             res += tmp;
             if i != LEVEL-1:
                 res += "/"
 
-        #addToDict(self.subscription_pool, res, -1)
-        self.compress_adddict(res, -1)
+        if method == 0:
+            addToDict(self.subscription_pool, res, -1)
+        elif method == 1:
+            self.compress_adddict(res, -1)
         self.subscription_queue.append((res, self.name))
+
+    def get_subpool_size(self):
+        size = 0
+        for k in self.subscription_pool.values():
+            size += len(k)
+        return size
 
     def subscribe_flooding(self):
         # TODO: should this be an extra list? this depends on the protocol used to transfer subscription info
@@ -229,6 +240,26 @@ class Broker():
                                         "message": tmp_sub[0] + "from the broker " + str(self.name)}] + self.atp[i]
                         self.lock.release()
                         print("Broker %d finished the SF of topic %s to %d !" % (self.name, tmp_sub[0], i))
+
+    def subscribers(self, method):
+        # simulate the action of subscribers.
+        # method: whether consider wildcard optimization. 1- consider; 0 - no consider
+        candidate_1 = 3  # equal to the num_of_candidate in main.py -> main()
+        while self.sub_flag:
+            # randomly generate a topic
+            topic = [0 for i in range(3)]   # 0~n stands for candidate index; -1: single level+; -2: multi level#
+            candidates = np.linspace(-2, candidate_1-1, candidate_1 + 2)
+            wildcard_chance = [0.1, 0.2] # possibility to select [#, +]
+            other_chance = [(1 - wildcard_chance[0] - wildcard_chance[1]) / float(candidate_1) for i in range(candidate_1)]
+            for i in range(len(topic)):
+                topic[i] = int(np.random.choice(candidates, 1, p=wildcard_chance+other_chance)[0])
+            # can generate on other brokers
+            name = self.name
+            if random.random() > 0.8:
+                name = random.randint(0, len(self.atp)-1)
+            self.subscribe_topic(topic, name, method)
+            time.sleep(self.sub_speed)
+            self.num_subinfo.append(self.get_subpool_size())
 
     def publish(self):
         # randomly publish something at random speed to the pool
@@ -305,20 +336,29 @@ class Broker():
 
     def stop(self):
         self.pub_flag = False
-        self.sf_flag = True
+        self.sf_flag = False
+        self.sub_flag = False
 
     def start_simu(self, init_number, locality):
         # start multi-threads for simulation
         self.subscribe_init(init_number, locality)
         self.pub_flag = True
         self.sf_flag = True
+        self.sub_flag = True
 
         th1 = threading.Thread(target=self.subscribe_flooding)
         th2 = threading.Thread(target=self.publish)
         th3 = threading.Thread(target=self.work_loop)
+        th4 = threading.Thread(target=self.subscribers, args=(1, ))
         th1.start()
         th2.start()
         th3.start()
+        th4.start()
+
+        time.sleep(10)
+        self.stop()
+        print(self.subscription_pool)
+        print(self.num_subinfo)
 
         # if self.name == 0:
         #     time.sleep(2)

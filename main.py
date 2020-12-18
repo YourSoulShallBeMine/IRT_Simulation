@@ -57,7 +57,7 @@ if __name__ == '__main__':
     num_of_brokers = 3
     num_of_candidate = 3
     topic_structure_level = 3  # do not easily change it
-    read_from_existed = False
+    read_from_existed = True
     # generate topics and all_Topics
     all_Topics = []
     if read_from_existed:
@@ -78,8 +78,8 @@ if __name__ == '__main__':
 
     label_pool = ["XXthisXSubXisXfromXaXbrokerXX", "XXthisXPubXisXfromXanotherXbrokerXX"]
 
-    for i in range(num_of_brokers):
+    for i in range(1):
         Broker_i = Broker(all_topic_pool, atp_lock, broker_graph, label_pool, i, all_Topics)
-        Thi = threading.Thread(target=Broker_i.start_simu, args=(2, 1, )) # args: local topics, other topics
+        Thi = threading.Thread(target=Broker_i.start_simu, args=(1, 0, )) # args: local topics, other topics
         Thi.start()
 
