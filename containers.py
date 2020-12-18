@@ -267,9 +267,9 @@ class Broker():
 
     def publish(self):
         # randomly publish something at random speed to the pool
-        iteration = 30 # for demo 2
-        #while self.pub_flag:
-        for ite in range(iteration):
+        #iteration = 30 # for demo 2
+        while self.pub_flag:
+        #for ite in range(iteration):
             # generate topics. Message: current time
             targets = [[random.randint(0, len(self.ATs[0][self.name])-1) for i in range(LEVEL)]
                        for j in range(random.randint(1, self.pub_sub))] # [[2,4,1] * n]
@@ -289,11 +289,11 @@ class Broker():
 
             self.pub_cnt += len(targets)
             time.sleep(self.pub_speed)
-        self.pub_flag = False
+        #self.pub_flag = False
 
     def work_loop(self):
         # read publications from the pool and do broadcast
-        iteration = 1000
+        iteration = 300
         for i in range(iteration):
             if not self.sub_flag or not self.pub_flag or not self.sf_flag:
                 print(">> Terminated because of the flag chagne <<<\n"
@@ -301,13 +301,16 @@ class Broker():
                       + "pub_flag" + str(self.name) + " is " + str(self.pub_flag)
                       + "sf_flag" + str(self.name) + " is " + str(self.sf_flag)
                       )
-            while len(self.atp[self.name]) == 0:  # no publication received, then be idle TODO: spin lock is not so good
-                if not self.pub_flag:
-                    if len(self.atp[self.name]) == 0:
-                        print("\n>> Broker %d Terminated because pub is end <<<\n" % self.name)
-                        return
-                continue
+            # while len(self.atp[self.name]) == 0:  # no publication received, then be idle TODO: spin lock is not so good
+            #     if not self.pub_flag:
+            #         if len(self.atp[self.name]) == 0:
+            #             print("\n>> Broker %d Terminated because pub is end <<<\n" % self.name)
+            #             return
+            #     continue
             # abstract a topic
+            if len(self.atp[self.name]) == 0:
+                time.sleep(self.process_speed)
+                continue
             self.lock.acquire()
             tmp = self.atp[self.name][0]
             self.atp[self.name] = self.atp[self.name][1:]
@@ -350,6 +353,8 @@ class Broker():
                         print("Broker %d transfer a publication <%s> to its neighbor %d!" % (self.name, tmp["topic"], j))
 
             time.sleep(self.process_speed)
+        self.stop()
+        print("Broker %d has totally generated %d messages." % (self.name, self.pub_cnt))
 
     def stop(self):
         self.pub_flag = False
@@ -370,8 +375,8 @@ class Broker():
         th2.start()
         th3.start()
 
-        th2.join()
-        print("Broker %d has totally generated %d messages." % (self.name, self.pub_cnt))
+        th3.join()
+        # print("Broker %d has totally generated %d messages." % (self.name, self.pub_cnt))
 
         #time.sleep(10)
         #self.stop()
