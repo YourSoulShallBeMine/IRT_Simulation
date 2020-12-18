@@ -53,11 +53,13 @@ def draw_topology(graph, edges):
         except IndexError:
             print(str(e) + " is not a legal connection in the network")
 
-if __name__ == '__main__':
-    num_of_brokers = 3
-    num_of_candidate = 3
+
+#if __name__ == '__main__':
+def demo1():
+    num_of_brokers = 5
+    num_of_candidate = 5
     topic_structure_level = 3  # do not easily change it
-    read_from_existed = True
+    read_from_existed = False
     # generate topics and all_Topics
     all_Topics = []
     if read_from_existed:
@@ -72,14 +74,44 @@ if __name__ == '__main__':
     all_topic_pool = [[] for i in range(num_of_brokers)]
     atp_lock = threading.Lock()
     broker_graph = [[0 for j in range(num_of_brokers)] for i in range(num_of_brokers)]
-    #edges = [(0, 1, 1), (0, 2, 1), (2, 3, 1), (2, 4, 1)]\
-    edges = [(0, 1, 1), (1, 2, 1)] # simple 0 -> 1 -> 2 model for test functions
+    edges = [(0, 1, 1), (0, 2, 1), (2, 3, 1), (2, 4, 1)]\
+    #edges = [(0, 1, 1), (1, 2, 1)] # simple 0 -> 1 -> 2 model for test functions
     draw_topology(broker_graph, edges)
 
     label_pool = ["XXthisXSubXisXfromXaXbrokerXX", "XXthisXPubXisXfromXanotherXbrokerXX"]
 
-    for i in range(1):
+    # traditional method
+    res0 = [[] for i in range(num_of_brokers)]
+    threads = []
+    for i in range(num_of_brokers):
         Broker_i = Broker(all_topic_pool, atp_lock, broker_graph, label_pool, i, all_Topics)
-        Thi = threading.Thread(target=Broker_i.start_simu, args=(1, 0, )) # args: local topics, other topics
-        Thi.start()
+        # Thi = threading.Thread(target=Broker_i.start_simu, args=(1, 0, )) # args: local topics, other topics
+        threads.append(threading.Thread(target=Broker_i.demo1, args=(1, 0, res0,)))
+    for i in range(num_of_brokers):
+        threads[i].start()
+    for i in range(num_of_brokers):  # wait for all threads down
+        threads[i].join()
+    res0 = np.sum(res0, axis=0)  # total number in system
 
+    # optimized method
+    res1 = [[] for i in range(num_of_brokers)]
+    threads = []
+    for i in range(num_of_brokers):
+        Broker_i = Broker(all_topic_pool, atp_lock, broker_graph, label_pool, i, all_Topics)
+        #Thi = threading.Thread(target=Broker_i.start_simu, args=(1, 0, )) # args: local topics, other topics
+        threads.append(threading.Thread(target=Broker_i.demo1, args=(1, 1, res1, )))
+    for i in range(num_of_brokers):
+        threads[i].start()
+    for i in range(num_of_brokers):  # wait for all threads down
+        threads[i].join()
+    res1 = np.sum(res1, axis=0) # total number in system
+
+    x = np.linspace(1, len(res1), len(res1))
+    plt.plot(x, res0)
+    plt.plot(x, res1)
+    plt.legend(["Traditional", "Wildcard merge"])
+    plt.xlabel("Round")
+    plt.ylabel("Total Number of sub info")
+    plt.title("Storage cost comparison")
+    plt.show()
+demo1()

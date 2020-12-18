@@ -55,14 +55,18 @@ def match_topics(pub, sub):
             elif s[i] != "+":
                 if res == 2:
                     res = 3
-            continue
+                    continue
+                else:
+                    return 0
         else:
             if s[i] == "#":
-                return 3
+                return 1
             elif s[i] == "+":
                 if res == 2:
                     res = 1
-                continue
+                    continue
+                else:
+                    return 0
             elif s[i] == p[i]:
                 continue
             else:
@@ -288,7 +292,13 @@ class Broker():
         # read publications from the pool and do broadcast
         iteration = 10000
         for i in range(iteration):
-            while len(self.atp[self.name]) == 0:
+            if not self.sub_flag or not self.pub_flag or not self.sf_flag:
+                print(">> Terminated because of the flag chagne <<<\n"
+                      + "sub_flag" + str(self.name) + " is " + str(self.sub_flag)
+                      + "pub_flag" + str(self.name) + " is " + str(self.pub_flag)
+                      + "sf_flag" + str(self.name) + " is " + str(self.sf_flag)
+                      )
+            while len(self.atp[self.name]) == 0:  # no publication received, then be idle TODO: spin lock is not so good
                 continue
             # abstract a topic
             self.lock.acquire()
@@ -349,7 +359,7 @@ class Broker():
         th1 = threading.Thread(target=self.subscribe_flooding)
         th2 = threading.Thread(target=self.publish)
         th3 = threading.Thread(target=self.work_loop)
-        th4 = threading.Thread(target=self.subscribers, args=(1, ))
+        th4 = threading.Thread(target=self.subscribers, args=(0, ))
         th1.start()
         th2.start()
         th3.start()
@@ -360,11 +370,28 @@ class Broker():
         print(self.subscription_pool)
         print(self.num_subinfo)
 
-        # if self.name == 0:
-        #     time.sleep(2)
-        #     print(self.subscription_pool)
-        #     self.subscribe_topic(-2, 0, 0)
-        #     print(self.subscription_pool)
+    def demo1(self, init_number, method, res):
+        # demo1: the comparison bewteen whether use the wildcard
+        # init_number: how many topics at the beginning; method: 0 for traditional, 1 for optimized
+        # return res of number of topics at each round
+
+        # start multi-threads for simulation
+        self.subscribe_init(init_number, 0)
+        self.sf_flag = True
+        self.sub_flag = True
+
+        th1 = threading.Thread(target=self.subscribe_flooding)
+        th2 = threading.Thread(target=self.subscribers, args=(method,))
+        th1.start()
+        th2.start()
+
+        time.sleep(10)
+        self.stop()
+        print(self.subscription_pool)
+        print(self.num_subinfo)
+        self.lock.acquire()
+        res[self.name] = self.num_subinfo
+        self.lock.release()
 
 
 
