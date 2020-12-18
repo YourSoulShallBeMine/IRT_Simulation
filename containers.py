@@ -141,7 +141,10 @@ class Broker():
         self.num_innersubs = 0  # number of inner subscription info sharing
         self.num_subinfo = []  # number of topics stored in the subinfo
         self.size_accumulate = 0 # total size that this broker has added to the network
-        self.size_trend = [0] # size at different round
+        self.size_trend = [] # size at different round
+
+        self.size_expectedpf = 0    # total size if using pf algorithm
+        self.size_pftrend = []      # pf size at different round
 
     def compress_adddict(self, topic, user):
         # made same subscription together
@@ -165,11 +168,18 @@ class Broker():
             if self.subscription_pool[i] == []:
                 self.subscription_pool.pop(i)
 
+
+    def subscribe_init_2(self, init_number, locality):
+        # generate, but won't add back to the queue/pool
+        # force to generate topics with wildcard
+        if init_number < 2 or locality < 2:
+            print("Both parameters should larger than 2 for demo2 use !")
+        
+
     def subscribe_init(self, init_number, locality):
         # init the subscription_pool. THIS MAY UPDATE later
         # init_number: number of init topics
         # locality: randomly choose locality topics from other brokers. 0 - no others
-        # TODO: take wildcard into consideration
 
         topics0 = []
         max_length = len(self.ATs[0][self.name])
@@ -294,19 +304,23 @@ class Broker():
             self.lock.release()
 
             self.pub_cnt += len(targets)
+            for t in tmp_list:
+                self.size_expectedpf += (PNP_SIZE + int(t["message"][-2:])) * len(self.atp)
             time.sleep(self.pub_speed)
         #self.pub_flag = False
 
     def work_loop(self):
         # read publications from the pool and do broadcast
-        iteration = 500
+        iteration = 600
         for i in range(iteration):
-            if not self.sub_flag or not self.pub_flag or not self.sf_flag:
-                print(">> Terminated because of the flag chagne <<<\n"
-                      + "sub_flag" + str(self.name) + " is " + str(self.sub_flag)
-                      + "pub_flag" + str(self.name) + " is " + str(self.pub_flag)
-                      + "sf_flag" + str(self.name) + " is " + str(self.sf_flag)
-                      )
+            if i%20 == 0:
+                print("-=-=-=-= iteration %d =-=-=-=-\n" % i)
+            # if not self.sub_flag or not self.pub_flag or not self.sf_flag:
+            #     print(">> Terminated because of the flag chagne <<<\n"
+            #           + "sub_flag" + str(self.name) + " is " + str(self.sub_flag)
+            #           + "pub_flag" + str(self.name) + " is " + str(self.pub_flag)
+            #           + "sf_flag" + str(self.name) + " is " + str(self.sf_flag)
+            #           )
             # while len(self.atp[self.name]) == 0:  # no publication received, then be idle TODO: spin lock is not so good
             #     if not self.pub_flag:
             #         if len(self.atp[self.name]) == 0:
@@ -315,7 +329,8 @@ class Broker():
             #     continue
             # abstract a topic
             if len(self.atp[self.name]) == 0:
-                self.size_trend.append(self.size_trend[-1])
+                self.size_trend.append(self.size_accumulate)
+                self.size_pftrend.append(self.size_expectedpf)
                 time.sleep(self.process_speed)
                 continue
             self.lock.acquire()
@@ -363,6 +378,7 @@ class Broker():
                     time.sleep(self.process_speed)
 
             self.size_trend.append(self.size_accumulate)
+            self.size_pftrend.append(self.size_expectedpf)
         self.stop()
         print("Broker %d has totally generated %d messages." % (self.name, self.pub_cnt))
 
@@ -371,7 +387,7 @@ class Broker():
         self.sf_flag = False
         self.sub_flag = False
 
-    def demo2(self, init_number, locality, res):
+    def demo2(self, init_number, locality, res0, res1):
         # start multi-threads for simulation
         self.subscribe_init(init_number, locality)
         self.pub_flag = True
@@ -382,12 +398,13 @@ class Broker():
         th3 = threading.Thread(target=self.work_loop)
         th1.start()
         th3.start()
-        time.sleep(10)
+        time.sleep(20)
         th2 = threading.Thread(target=self.publish)
         th2.start()
 
         th3.join()
-        res[self.name] = self.size_trend
+        res0[self.name] = self.size_trend
+        res1[self.name] = self.size_pftrend
         # print("Broker %d has totally generated %d messages." % (self.name, self.pub_cnt))
 
         #time.sleep(10)

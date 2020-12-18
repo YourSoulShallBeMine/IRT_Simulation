@@ -142,29 +142,41 @@ def demo2():
     label_pool = ["XXthisXSubXisXfromXaXbrokerXX", "XXthisXPubXisXfromXanotherXbrokerXX"]
 
     # traditional method
-    res0 = [[] for i in range(num_of_brokers)]
+    res0 = [[] for i in range(num_of_brokers)]  # NSF
+    res1 = [[] for i in range(num_of_brokers)]  # PF
     threads = []
     for i in range(num_of_brokers):
         Broker_i = Broker(all_topic_pool, atp_lock, broker_graph, label_pool, i, all_Topics)
-        threads.append(threading.Thread(target=Broker_i.demo2, args=(5, 3, res0))) # args: local topics, other topics
+        threads.append(threading.Thread(target=Broker_i.demo2, args=(5, 3, res0, res1, ))) # args: local topics, other topics
         #threads.append(threading.Thread(target=Broker_i.demo1, args=(1, 0, res0,)))
     for i in range(num_of_brokers):
         threads[i].start()
     for i in range(num_of_brokers):  # wait for all threads down
         threads[i].join()
     print("DEMO2 ends!")
-    res0 = np.sum(res0, axis=0)  # total number in system
+    res00 = np.sum(res0, axis=0)  # total number in system
+    res1 = np.sum(res1, axis=0)
+    #res0 = res0[0]
 
     # optimized method
 
 
-    x = np.linspace(1, len(res0), len(res0))
-    plt.plot(x, res0)
+    x = np.linspace(1, len(res00), len(res00))
+    for i in range(num_of_brokers):
+        plt.plot(x, res0[i])
     #plt.plot(x, res1)
-    #plt.legend(["Traditional", "Wildcard merge"])
+    plt.legend(["0", "1", "2", "3", "4", "5"])
+    plt.xlabel("Round")
+    plt.ylabel("Bytes used in the network by each broker")
+    plt.title("Bandwidth Comparison 1")
+    plt.show()
+
+    plt.plot(x, res00)
+    plt.plot(x, res1)
+    plt.legend(["Naive SF", "PF"])
     plt.xlabel("Round")
     plt.ylabel("Total Bytes used in the network")
-    plt.title("Bandwidth Comparison")
+    plt.title("Bandwidth Comparison 2")
     plt.show()
 
 demo2()
