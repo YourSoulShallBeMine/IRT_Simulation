@@ -124,7 +124,7 @@ class Broker():
 
         self.pub_flag= False
         self.pub_speed = 1    # every x seconds publish somethings
-        self.pub_sub = 2    # one time x publications max
+        self.pub_sub = 3    # one time x publications max
         self.pub_cnt = 0    # number of total publication generated
         self.process_speed = 0.1    # process every x second
         self.sub_flag = False
@@ -267,7 +267,9 @@ class Broker():
 
     def publish(self):
         # randomly publish something at random speed to the pool
-        while self.pub_flag:
+        iteration = 30 # for demo 2
+        #while self.pub_flag:
+        for ite in range(iteration):
             # generate topics. Message: current time
             targets = [[random.randint(0, len(self.ATs[0][self.name])-1) for i in range(LEVEL)]
                        for j in range(random.randint(1, self.pub_sub))] # [[2,4,1] * n]
@@ -287,10 +289,11 @@ class Broker():
 
             self.pub_cnt += len(targets)
             time.sleep(self.pub_speed)
+        self.pub_flag = False
 
     def work_loop(self):
         # read publications from the pool and do broadcast
-        iteration = 10000
+        iteration = 1000
         for i in range(iteration):
             if not self.sub_flag or not self.pub_flag or not self.sf_flag:
                 print(">> Terminated because of the flag chagne <<<\n"
@@ -299,6 +302,10 @@ class Broker():
                       + "sf_flag" + str(self.name) + " is " + str(self.sf_flag)
                       )
             while len(self.atp[self.name]) == 0:  # no publication received, then be idle TODO: spin lock is not so good
+                if not self.pub_flag:
+                    if len(self.atp[self.name]) == 0:
+                        print("\n>> Broker %d Terminated because pub is end <<<\n" % self.name)
+                        return
                 continue
             # abstract a topic
             self.lock.acquire()
@@ -359,16 +366,15 @@ class Broker():
         th1 = threading.Thread(target=self.subscribe_flooding)
         th2 = threading.Thread(target=self.publish)
         th3 = threading.Thread(target=self.work_loop)
-        th4 = threading.Thread(target=self.subscribers, args=(0, ))
         th1.start()
         th2.start()
         th3.start()
-        th4.start()
 
-        time.sleep(10)
-        self.stop()
-        print(self.subscription_pool)
-        print(self.num_subinfo)
+        th2.join()
+        print("Broker %d has totally generated %d messages." % (self.name, self.pub_cnt))
+
+        #time.sleep(10)
+        #self.stop()
 
     def demo1(self, init_number, method, res):
         # demo1: the comparison bewteen whether use the wildcard
