@@ -6,6 +6,8 @@ import copy
 
 TYPE = {0: "empty", 1: "Broker", 2:"Subscriber", 3:"Publisher"}
 LEVEL = 3
+SF_SIZE = 2 + (5 + 4 + 3) + 30 + 8  # a length (Bytes) of a subscription info
+PNP_SIZE = 2 + (5 + 4 + 3) + 30 # a length (Bytes) without payload of a transfer publication
 
 
 def some_rand(x, a, b):
@@ -138,9 +140,8 @@ class Broker():
         self.num_innertrans = 0  # number of publication among brokers
         self.num_innersubs = 0  # number of inner subscription info sharing
         self.num_subinfo = []  # number of topics stored in the subinfo
-
-
-
+        self.size_accumulate = 0 # total size that this broker has added to the network
+        self.size_trend = [0] # size at different round
 
     def compress_adddict(self, topic, user):
         # made same subscription together
@@ -242,8 +243,12 @@ class Broker():
                         self.lock.acquire()
                         self.atp[i] = [{"topic": self.lP[0] + str(self.name) + "/" +  tmp_sub[0],
                                         "message": tmp_sub[0] + "from the broker " + str(self.name)}] + self.atp[i]
+                        self.size_accumulate += SF_SIZE
                         self.lock.release()
                         print("Broker %d finished the SF of topic %s to %d !" % (self.name, tmp_sub[0], i))
+                        time.sleep(self.process_speed)
+                #self.sf_flag = False    # for demo2, cause no Subscription arrives after the initial
+        #print("\n === Broker %d end the initial subscription flooding === \n" % self.name)  # for demo2
 
     def subscribers(self, method):
         # simulate the action of subscribers.
@@ -268,6 +273,7 @@ class Broker():
     def publish(self):
         # randomly publish something at random speed to the pool
         #iteration = 30 # for demo 2
+        print("\n>>>Broker %d starts the publishes! <<<\n" % self.name)
         while self.pub_flag:
         #for ite in range(iteration):
             # generate topics. Message: current time
@@ -293,7 +299,7 @@ class Broker():
 
     def work_loop(self):
         # read publications from the pool and do broadcast
-        iteration = 300
+        iteration = 500
         for i in range(iteration):
             if not self.sub_flag or not self.pub_flag or not self.sf_flag:
                 print(">> Terminated because of the flag chagne <<<\n"
@@ -309,6 +315,7 @@ class Broker():
             #     continue
             # abstract a topic
             if len(self.atp[self.name]) == 0:
+                self.size_trend.append(self.size_trend[-1])
                 time.sleep(self.process_speed)
                 continue
             self.lock.acquire()
@@ -328,6 +335,7 @@ class Broker():
                 self.sp_lock.acquire()
                 addToDict(self.subscription_pool, tmp["topic"][len(header)+1:], source)
                 self.sp_lock.release()
+                time.sleep(self.process_speed)
             # elif header[0:len(self.lP[1])] == self.lP[1]:   # publication from another broker
             else:   # normal publication from clients
                 # see whether it is from another broker
@@ -349,10 +357,12 @@ class Broker():
                         tmp["topic"] = self.lP[1] + str(self.name) + "/" + tmp["topic"]
                         self.lock.acquire()
                         self.atp[j].append(tmp)
+                        self.size_accumulate += PNP_SIZE + int(tmp["message"][-2:])
                         self.lock.release()
                         print("Broker %d transfer a publication <%s> to its neighbor %d!" % (self.name, tmp["topic"], j))
+                    time.sleep(self.process_speed)
 
-            time.sleep(self.process_speed)
+            self.size_trend.append(self.size_accumulate)
         self.stop()
         print("Broker %d has totally generated %d messages." % (self.name, self.pub_cnt))
 
@@ -361,7 +371,7 @@ class Broker():
         self.sf_flag = False
         self.sub_flag = False
 
-    def start_simu(self, init_number, locality):
+    def demo2(self, init_number, locality, res):
         # start multi-threads for simulation
         self.subscribe_init(init_number, locality)
         self.pub_flag = True
@@ -369,13 +379,15 @@ class Broker():
         self.sub_flag = True
 
         th1 = threading.Thread(target=self.subscribe_flooding)
-        th2 = threading.Thread(target=self.publish)
         th3 = threading.Thread(target=self.work_loop)
         th1.start()
-        th2.start()
         th3.start()
+        time.sleep(10)
+        th2 = threading.Thread(target=self.publish)
+        th2.start()
 
         th3.join()
+        res[self.name] = self.size_trend
         # print("Broker %d has totally generated %d messages." % (self.name, self.pub_cnt))
 
         #time.sleep(10)
